@@ -1,43 +1,55 @@
 package com.petshop.controller
 
-import com.petshop.entity.Tutor
+import com.petshop.dto.TutorRequest
+import com.petshop.dto.TutorResponse
+import com.petshop.mapper.TutorMapper
 import com.petshop.service.TutorService
+import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/tutores")
-class TutorController(private val tutorService: TutorService) {
+class TutorController(
+    private val tutorService: TutorService,
+    private val tutorMapper: TutorMapper
+) {
 
     // GET - listar todos
     @GetMapping
-    fun listarTodos(): List<Tutor> = tutorService.listarTodos()
+    fun listarTodos(): List<TutorResponse> =
+        tutorService.listarTodos().map { tutorMapper.toResponse(it) }
 
     // GET - buscar por id
     @GetMapping("/{id}")
-    fun buscarPorId(@PathVariable id: Long): ResponseEntity<Tutor> {
+    fun buscarPorId(@PathVariable id: Long): ResponseEntity<TutorResponse> {
         val tutor = tutorService.buscarPorId(id)
-        return if (tutor != null) ResponseEntity.ok(tutor)
+        return if (tutor != null) ResponseEntity.ok(tutorMapper.toResponse(tutor))
         else ResponseEntity.notFound().build()
     }
 
     // GET - busca parcial por nome
     @GetMapping("/buscar")
-    fun buscarPorNome(@RequestParam nome: String): List<Tutor> =
-        tutorService.buscarPorNome(nome)
+    fun buscarPorNome(@RequestParam nome: String): List<TutorResponse> =
+        tutorService.buscarPorNome(nome).map { tutorMapper.toResponse(it) }
 
     // POST - criar
     @PostMapping
-    fun criar(@RequestBody tutor: Tutor): ResponseEntity<Tutor> {
-        val novo = tutorService.criar(tutor)
-        return ResponseEntity.status(201).body(novo)
+    fun criar(@Valid @RequestBody request: TutorRequest): ResponseEntity<TutorResponse> {
+        val tutor = tutorMapper.toEntity(request)
+        val salvo = tutorService.criar(tutor)
+        return ResponseEntity.status(201).body(tutorMapper.toResponse(salvo))
     }
 
     // PUT - atualizar
     @PutMapping("/{id}")
-    fun atualizar(@PathVariable id: Long, @RequestBody tutor: Tutor): ResponseEntity<Tutor> {
+    fun atualizar(
+        @PathVariable id: Long,
+        @Valid @RequestBody request: TutorRequest
+    ): ResponseEntity<TutorResponse> {
+        val tutor = tutorMapper.toEntity(request)
         val atualizado = tutorService.atualizar(id, tutor)
-        return if (atualizado != null) ResponseEntity.ok(atualizado)
+        return if (atualizado != null) ResponseEntity.ok(tutorMapper.toResponse(atualizado))
         else ResponseEntity.notFound().build()
     }
 
